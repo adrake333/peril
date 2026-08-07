@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
-
 	amqp "github.com/rabbitmq/amqp091-go"
-	"internal/pubsub"
-	"internal/routing"
+	
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 )
 
 func main() {
