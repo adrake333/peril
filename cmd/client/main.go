@@ -45,6 +45,40 @@ func main() {
 
 	gameState := gamelogic.NewGameState(username)
 
+	for {
+		input := gamelogic.GetInput()
+		if len(input) == 0 {
+			fmt.Println("Please enter a valid command")
+			continue
+		}
+		switch input[0] {
+		case "spawn":
+			err = gameState.CommandSpawn(input)
+			if err != nil {
+				fmt.Printf("Error spawning unit: %v\n", err)
+				continue
+			}
+		case "move":
+			_, err = gameState.CommandMove(input)
+			if err != nil {
+				fmt.Printf("Error moving unit: %v\n", err)
+			}
+			fmt.Println("Moving units successful")
+		case "status":
+			gameState.CommandStatus()
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "spam":
+			fmt.Println("Spamming not allowed yet!")
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			fmt.Println("Please enter a valid command")
+			continue
+		}
+	}
+
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 	<-signalChan
