@@ -34,6 +34,17 @@ func main() {
 		log.Fatalf("Error publishing JSON: %v", err)
 	}
 
+	_, _, err = pubsub.DeclareAndBind(
+		connection,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug + ".*",
+		pubsub.Durable,
+	)
+	if err != nil {
+		log.Fatalf("Error declaring queue: %v", err)
+	}
+
 	gamelogic.PrintServerHelp()
 
 	for {
