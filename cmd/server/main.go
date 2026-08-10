@@ -9,6 +9,7 @@ import (
 	
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 )
 
 func main() {
@@ -31,6 +32,34 @@ func main() {
 	err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 	if err != nil {
 		log.Fatalf("Error publishing JSON: %v", err)
+	}
+
+	gamelogic.PrintServerHelp()
+
+	for {
+		input := gamelogic.GetInput()
+		if len(input) == 0 {
+			continue
+		}
+		switch input[0] {
+		case "pause":
+			log.Println("sending pause message")
+			err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: true})
+			if err != nil {
+				log.Fatalf("Error publishing JSON: %v", err)
+			}
+		case "resume":
+			log.Println("sending resume message")
+			err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: false})
+			if err != nil {
+				log.Fatalf("Error publishing JSON: %v", err)
+			}
+		case "quit":
+			log.Println("exiting program")
+			return
+		default:
+			log.Println("unkown command")
+		}
 	}
 
 	signalChan := make(chan os.Signal, 1)
