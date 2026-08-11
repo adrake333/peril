@@ -14,13 +14,13 @@ import (
 
 func main() {
 	fmt.Println("Starting Peril client...")
-	connectionStr := "amqp://guest:guest@localhost:5672/"
-	connection, err := amqp.Dial(connectionStr)
+	connStr := "amqp://guest:guest@localhost:5672/"
+	conn, err := amqp.Dial(connStr)
 	if err != nil {
 		log.Fatalf("Error connecting to server: %v", err)
 	}
 
-	defer connection.Close()
+	defer conn.Close()
 
 	fmt.Println("Connection successful")
 
@@ -32,18 +32,19 @@ func main() {
 
 	queueName := routing.PauseKey + "." + username
 
-	_, _, err = pubsub.DeclareAndBind(
-		connection,
+	gs := gamelogic.NewGameState(username)
+
+	err = pubsub.SubscribeJSON(
+		conn,
 		routing.ExchangePerilDirect,
 		queueName,
 		routing.PauseKey,
 		pubsub.Transient,
+		handlerPause(gs),
 	)
 	if err != nil {
-		log.Fatalf("Error declaring queue: %v", err)
+		log.Fatalf("Error subscribing JSON: %v", err)
 	}
-
-	gameState := gamelogic.NewGameState(username)
 
 	for {
 		input := gamelogic.GetInput()
@@ -53,19 +54,20 @@ func main() {
 		}
 		switch input[0] {
 		case "spawn":
-			err = gameState.CommandSpawn(input)
+			err = gs.CommandSpawn(input)
 			if err != nil {
 				fmt.Printf("Error spawning unit: %v\n", err)
 				continue
 			}
 		case "move":
-			_, err = gameState.CommandMove(input)
+			_, err = gs.CommandMove(input)
 			if err != nil {
 				fmt.Printf("Error moving unit: %v\n", err)
+			} else {
+				fmt.Println("Moving units successful")
 			}
-			fmt.Println("Moving units successful")
 		case "status":
-			gameState.CommandStatus()
+			gs.CommandStatus()
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
