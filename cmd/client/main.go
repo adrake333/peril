@@ -24,6 +24,11 @@ func main() {
 
 	fmt.Println("Connection successful")
 
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Error establishing connection channel: %v", err)
+	}
+	
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		fmt.Println(err)
@@ -46,6 +51,22 @@ func main() {
 		log.Fatalf("Error subscribing JSON: %v", err)
 	}
 
+	mvQueueName := routing.ArmyMovesPrefix + "." + username
+
+	mvKey := routing.ArmyMovesPrefix + ".*"
+
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		mvQueueName,
+		mvKey,
+		pubsub.Transient,
+		handlerMove(gs),
+	)
+	if err != nil {
+		log.Fatalf("Error subscribing JSON: %v", err)
+	}
+
 	for {
 		input := gamelogic.GetInput()
 		if len(input) == 0 {
@@ -60,11 +81,19 @@ func main() {
 				continue
 			}
 		case "move":
-			_, err = gs.CommandMove(input)
+			mv, err := gs.CommandMove(input)
 			if err != nil {
 				fmt.Printf("Error moving unit: %v\n", err)
+				continue
 			} else {
 				fmt.Println("Moving units successful")
+			}
+			err = pubsub.PublishJSON(ch, routing.ExchangePerilTopic, routing.ArmyMovesPrefix + "." + mv.Player.Username, mv)
+			if err != nil {
+				log.Printf("Error publishing move message: %v\n", err)
+				continue
+			} else {
+				log.Println("Move message published successfully")
 			}
 		case "status":
 			gs.CommandStatus()
