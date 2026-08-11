@@ -12,13 +12,22 @@ import (
 
 
 
+type Acktype int
+
+const (
+	Ack = iota
+	NackRequeue
+	NackDiscard
+)
+
+
 func SubscribeJSON[T any](
 	conn *amqp.Connection,
 	exchange,
 	queueName,
 	key string,
 	queueType SimpleQueueType,
-	handler func(T),
+	handler func(T) Acktype,
 ) error {
 	ch, queue, err := DeclareAndBind(
 		conn,
@@ -31,7 +40,7 @@ func SubscribeJSON[T any](
 		return err
 	}
 	
-	deliveries, err := ch.Consume(
+	msgs, err := ch.Consume(
 		queue.Name,
 		"",
 		false,
@@ -45,17 +54,26 @@ func SubscribeJSON[T any](
 	}
 
 	go func() {
-		for delivery := range deliveries {
+		for msg := range msgs {
 			var target T
 	
-			if err := json.Unmarshal(delivery.Body, &target); err != nil {
+			if err := json.Unmarshal(msg.Body, &target); err != nil {
 				log.Printf("could not unmarshal: %v", err)
 				continue
 			}
 
-			handler(target)
-
-			delivery.Ack(false)
+			acktype := handler(target)
+			switch acktype {
+			case Ack:
+				msg.Ack(false)
+				log.Println("Ack")
+			case NackRequeue:
+				msg.Nack(false, true)
+				log.Println("NackRequeue")
+			case NackDiscard:
+				msg.Nack(false, false)
+				log.Println("NackDiscard")
+			}
 		}
 	}()
 
