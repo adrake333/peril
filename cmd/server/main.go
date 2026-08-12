@@ -14,35 +14,48 @@ import (
 
 func main() {
 	fmt.Println("Starting Peril server...")
-	connectionStr := "amqp://guest:guest@localhost:5672/"
-	connection, err := amqp.Dial(connectionStr)
+	connStr := "amqp://guest:guest@localhost:5672/"
+	conn, err := amqp.Dial(connStr)
 	if err != nil {
 		log.Fatalf("Error connecting to server: %v", err)
 	}
 
-	defer connection.Close()
+	defer conn.Close()
 
 	fmt.Println("Connection successful")
 
-	channel, err := connection.Channel()
+	ch, err := conn.Channel()
 	if err != nil {
 		log.Fatalf("Error establishing connection channel: %v", err)
 	}
 
-	err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	err = pubsub.PublishJSON(ch,
+		routing.ExchangePerilDirect,
+		routing.PauseKey,
+		routing.PlayingState{IsPaused: true},
+	)
 	if err != nil {
 		log.Fatalf("Error publishing JSON: %v", err)
 	}
 
-	_, _, err = pubsub.DeclareAndBind(
-		connection,
+	err = pubsub.SubscribeGob(
+		conn,
 		routing.ExchangePerilTopic,
 		routing.GameLogSlug,
 		routing.GameLogSlug + ".*",
 		pubsub.Durable,
+		func (gl routing.GameLog) pubsub.Acktype {
+			defer fmt.Print("> ")
+			err := gamelogic.WriteLog(gl)
+			if err != nil {
+				log.Printf("Error logging gamelog: %v", err)
+				return pubsub.NackRequeue
+			}
+			return pubsub.Ack
+		},
 	)
 	if err != nil {
-		log.Fatalf("Error declaring queue: %v", err)
+		log.Fatalf("Error subscribing gob: %v", err)
 	}
 
 	gamelogic.PrintServerHelp()
@@ -55,13 +68,13 @@ func main() {
 		switch input[0] {
 		case "pause":
 			log.Println("sending pause message")
-			err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: true})
+			err = pubsub.PublishJSON(ch, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: true})
 			if err != nil {
 				log.Fatalf("Error publishing JSON: %v", err)
 			}
 		case "resume":
 			log.Println("sending resume message")
-			err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: false})
+			err = pubsub.PublishJSON(ch, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: false})
 			if err != nil {
 				log.Fatalf("Error publishing JSON: %v", err)
 			}
@@ -73,9 +86,9 @@ func main() {
 		}
 	}
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt)
+	<-signalCh
 	fmt.Println("Program is shutting down...")
 
 	return

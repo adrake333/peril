@@ -36,7 +36,7 @@ func subscribe[T any](
 		exchange,
 		queueName,
 		key,
-		queueType,
+		simpleQueueType,
 	)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func SubscribeGob[T any](
 	queueName,
 	key string,
 	queueType SimpleQueueType,
-	handler func(T) AckType,
+	handler func(T) Acktype,
 ) error {
 	return subscribe[T](
 		conn,
