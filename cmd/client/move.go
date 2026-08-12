@@ -5,16 +5,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 )
 
 
 
 
-func handlerMove(gs *gamelogic.GameState, ch amqp.Channel) func(gamelogic.ArmyMove) pubsub.Acktype {
+func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.ArmyMove) pubsub.Acktype {
 	return func(mv gamelogic.ArmyMove) pubsub.Acktype {
 		defer fmt.Print("> ")
 		outcome := gs.HandleMove(mv)
@@ -32,8 +34,9 @@ func handlerMove(gs *gamelogic.GameState, ch amqp.Channel) func(gamelogic.ArmyMo
 				},)
 			if err != nil {
 				log.Printf("Error publishing war message: %v\n", err)
+				return pubsub.NackRequeue
 			}
-			return pubsub.NackRequeue
+			return pubsub.Ack
 		default:
 			return pubsub.NackDiscard
 		}

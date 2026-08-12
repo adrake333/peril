@@ -71,7 +71,13 @@ func main() {
 		conn,
 		routing.ExchangePerilTopic,
 		"war",
-		// here
+		routing.WarRecognitionsPrefix + ".#",
+		pubsub.Durable,
+		handlerWar(gs),
+	)
+	if err != nil {
+		log.Fatalf("Error subscribing JSON: %v", err)
+	}
 
 	for {
 		input := gamelogic.GetInput()
