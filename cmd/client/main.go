@@ -73,7 +73,7 @@ func main() {
 		"war",
 		routing.WarRecognitionsPrefix + ".#",
 		pubsub.Durable,
-		handlerWar(gs),
+		handlerWar(gs, ch),
 	)
 	if err != nil {
 		log.Fatalf("Error subscribing JSON: %v", err)
