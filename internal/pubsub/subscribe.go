@@ -1,18 +1,12 @@
 package pubsub
 
-
-
-
 import (
-	amqp "github.com/rabbitmq/amqp091-go"
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 )
-
-
-
 
 type Acktype int
 
@@ -41,7 +35,12 @@ func subscribe[T any](
 	if err != nil {
 		return err
 	}
-	
+
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		return err
+	}
+
 	msgs, err := ch.Consume(
 		queue.Name,
 		"",

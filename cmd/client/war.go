@@ -1,19 +1,13 @@
 package main
 
-
-
-
 import (
 	"fmt"
-	"log"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"log"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 )
-
-
-
 
 func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.RecognitionOfWar) pubsub.Acktype {
 	return func(rw gamelogic.RecognitionOfWar) pubsub.Acktype {

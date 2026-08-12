@@ -1,21 +1,15 @@
 package pubsub
 
-
-
-
 import (
 	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-
-
-
 type SimpleQueueType int
 
 const (
-	Durable	SimpleQueueType = iota
+	Durable SimpleQueueType = iota
 	Transient
 )
 
@@ -26,7 +20,7 @@ func DeclareAndBind(
 	key string,
 	queueType SimpleQueueType,
 ) (*amqp.Channel, amqp.Queue, error) {
-	
+
 	channel, err := conn.Channel()
 	if err != nil {
 		return nil, amqp.Queue{}, fmt.Errorf("declaring queue: %v", err)
@@ -36,7 +30,7 @@ func DeclareAndBind(
 	isAutoDelete := queueType == Transient
 	isExclusive := queueType == Transient
 
-	queueArgs := amqp.Table{"x-dead-letter-exchange": "peril_dlx",}
+	queueArgs := amqp.Table{"x-dead-letter-exchange": "peril_dlx"}
 
 	queue, err := channel.QueueDeclare(queueName, isDurable, isAutoDelete, isExclusive, false, queueArgs)
 	if err != nil {
@@ -46,6 +40,6 @@ func DeclareAndBind(
 	if err != nil {
 		return nil, amqp.Queue{}, fmt.Errorf("declaring queue: %v", err)
 	}
-	
+
 	return channel, queue, nil
 }

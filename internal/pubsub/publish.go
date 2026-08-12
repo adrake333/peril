@@ -1,21 +1,15 @@
 package pubsub
 
-
-
-
 import (
-	amqp "github.com/rabbitmq/amqp091-go"
 	"bytes"
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"time"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 )
-
-
-
 
 func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 	jsonData, err := json.Marshal(val)
@@ -27,8 +21,7 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 		key,
 		false,
 		false,
-		amqp.Publishing{ContentType: "application/json", Body: jsonData,
-	})
+		amqp.Publishing{ContentType: "application/json", Body: jsonData})
 	if err != nil {
 		return err
 	}
@@ -50,7 +43,7 @@ func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
 		false,
 		amqp.Publishing{
 			ContentType: "application/gob",
-			Body: network.Bytes(),
+			Body:        network.Bytes(),
 		},
 	)
 	if err != nil {
@@ -62,9 +55,9 @@ func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
 func PublishGameLog(ch *amqp.Channel, username, msg string) error {
 	key := routing.GameLogSlug + "." + username
 	gl := routing.GameLog{
-		CurrentTime:	time.Now(),
-		Message:	msg,
-		Username:	username,
+		CurrentTime: time.Now(),
+		Message:     msg,
+		Username:    username,
 	}
 	err := PublishGob(ch, routing.ExchangePerilTopic, key, gl)
 	if err != nil {

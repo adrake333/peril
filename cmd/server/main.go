@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"os"
 	"os/signal"
-	amqp "github.com/rabbitmq/amqp091-go"
-	
+
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
-	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 )
 
 func main() {
@@ -38,13 +38,13 @@ func main() {
 		log.Fatalf("Error publishing JSON: %v", err)
 	}
 
-	err = pubsub.SubscribeGob(
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilTopic,
 		routing.GameLogSlug,
-		routing.GameLogSlug + ".*",
+		routing.GameLogSlug+".*",
 		pubsub.Durable,
-		func (gl routing.GameLog) pubsub.Acktype {
+		func(gl routing.GameLog) pubsub.Acktype {
 			defer fmt.Print("> ")
 			err := gamelogic.WriteLog(gl)
 			if err != nil {
@@ -68,13 +68,13 @@ func main() {
 		switch input[0] {
 		case "pause":
 			log.Println("sending pause message")
-			err = pubsub.PublishJSON(ch, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: true})
+			err = pubsub.PublishJSON(ch, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 			if err != nil {
 				log.Fatalf("Error publishing JSON: %v", err)
 			}
 		case "resume":
 			log.Println("sending resume message")
-			err = pubsub.PublishJSON(ch, routing.ExchangePerilDirect,routing.PauseKey,routing.PlayingState{IsPaused: false})
+			err = pubsub.PublishJSON(ch, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
 			if err != nil {
 				log.Fatalf("Error publishing JSON: %v", err)
 			}

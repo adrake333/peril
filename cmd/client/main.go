@@ -5,11 +5,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"time"
 
-	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
-	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -28,7 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error establishing connection channel: %v", err)
 	}
-	
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		fmt.Println(err)
@@ -71,7 +73,7 @@ func main() {
 		conn,
 		routing.ExchangePerilTopic,
 		"war",
-		routing.WarRecognitionsPrefix + ".#",
+		routing.WarRecognitionsPrefix+".#",
 		pubsub.Durable,
 		handlerWar(gs, ch),
 	)
@@ -100,7 +102,7 @@ func main() {
 			} else {
 				fmt.Println("Moving units successful")
 			}
-			err = pubsub.PublishJSON(ch, routing.ExchangePerilTopic, routing.ArmyMovesPrefix + "." + mv.Player.Username, mv)
+			err = pubsub.PublishJSON(ch, routing.ExchangePerilTopic, routing.ArmyMovesPrefix+"."+mv.Player.Username, mv)
 			if err != nil {
 				log.Printf("Error publishing move message: %v\n", err)
 				continue
@@ -112,7 +114,34 @@ func main() {
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
-			fmt.Println("Spamming not allowed yet!")
+			if len(input) < 2 {
+				fmt.Println("Invalid spam command")
+				continue
+			} else {
+				num, err := strconv.Atoi(input[1])
+				if err != nil {
+					log.Printf("Error converting to int: %v\n", err)
+					continue
+				}
+				for _ = range num {
+					msg := gamelogic.GetMaliciousLog()
+					gl := routing.GameLog{
+						CurrentTime: time.Now(),
+						Message:     msg,
+						Username:    gs.Player.Username,
+					}
+					err = pubsub.PublishJSON(
+						ch,
+						routing.ExchangePerilTopic,
+						routing.GameLogSlug+"."+gs.Player.Username,
+						gl,
+					)
+					if err != nil {
+						log.Printf("Error publishing JSON: %v\n", err)
+						continue
+					}
+				}
+			}
 		case "quit":
 			gamelogic.PrintQuit()
 			return
