@@ -61,11 +61,17 @@ func main() {
 		mvQueueName,
 		mvKey,
 		pubsub.Transient,
-		handlerMove(gs),
+		handlerMove(gs, ch),
 	)
 	if err != nil {
 		log.Fatalf("Error subscribing JSON: %v", err)
 	}
+
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		"war",
+		// here
 
 	for {
 		input := gamelogic.GetInput()
